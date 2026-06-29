@@ -178,10 +178,11 @@ function Library:MakeDraggable(Instance, Cutoff)
     local isDragging = false
     local outline = nil
     local dragOffset = nil
-    local startPos = nil
+    local parent = Instance.Parent
 
     Instance.InputBegan:Connect(function(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1 then
+            -- Check if clicking in the draggable area (title bar)
             local ObjPos = Vector2.new(
                 Mouse.X - Instance.AbsolutePosition.X,
                 Mouse.Y - Instance.AbsolutePosition.Y
@@ -193,9 +194,8 @@ function Library:MakeDraggable(Instance, Cutoff)
 
             isDragging = true
             dragOffset = ObjPos
-            startPos = Instance.AbsolutePosition
             
-            -- Create simple outline
+            -- Create the outline at the current position
             outline = Drawing.new("Square")
             outline.Visible = true
             outline.Filled = false
@@ -204,43 +204,45 @@ function Library:MakeDraggable(Instance, Cutoff)
             outline.Transparency = 1
             outline.ZIndex = 999
             outline.Size = Instance.AbsoluteSize
-            outline.Position = startPos
+            outline.Position = Instance.AbsolutePosition
             
             Library:AddToRegistry(outline, {
                 Color = 'AccentColor'
             })
 
+            -- Update outline position while dragging
             while InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) and isDragging do
                 if outline then
-                    -- Position outline at top-left of where window should be
                     local newX = Mouse.X - dragOffset.X
                     local newY = Mouse.Y - dragOffset.Y
                     outline.Position = Vector2.new(newX, newY)
                 end
-
                 RenderStepped:Wait();
             end
 
-            -- Move instance to outline position
+            -- Move the actual UI to match the outline
             if outline and isDragging then
-                local newPos = outline.Position
+                local targetPos = outline.Position
                 
-                -- Get the parent's absolute position to convert to local coordinates
-                local parent = Instance.Parent
-                local parentAbsPos = parent and parent.AbsolutePosition or Vector2.new(0, 0)
-                
-                -- Calculate the local position relative to parent
-                local localX = newPos.X - parentAbsPos.X
-                local localY = newPos.Y - parentAbsPos.Y
-                
-                -- Set the position using UDim2 with the calculated offset
-                -- Preserve any existing scale values (they should be 0 for draggable windows)
-                Instance.Position = UDim2.new(
-                    Instance.Position.X.Scale, 
-                    localX,
-                    Instance.Position.Y.Scale,
-                    localY
-                )
+                -- CRITICAL FIX: Convert screen coordinates to parent-relative coordinates
+                if parent then
+                    local parentAbsPos = parent.AbsolutePosition
+                    
+                    -- Calculate relative offset (how far from parent's top-left)
+                    local relativeX = targetPos.X - parentAbsPos.X
+                    local relativeY = targetPos.Y - parentAbsPos.Y
+                    
+                    -- Preserve any existing scale values (usually 0 for draggable windows)
+                    Instance.Position = UDim2.new(
+                        Instance.Position.X.Scale,
+                        relativeX,
+                        Instance.Position.Y.Scale,
+                        relativeY
+                    )
+                else
+                    -- Fallback if no parent (shouldn't happen)
+                    Instance.Position = UDim2.new(0, targetPos.X, 0, targetPos.Y)
+                end
                 
                 outline:Remove()
                 outline = nil
@@ -248,11 +250,10 @@ function Library:MakeDraggable(Instance, Cutoff)
             
             isDragging = false
             dragOffset = nil
-            startPos = nil
         end;
     end)
 
-    -- Clean up if input ends unexpectedly
+    -- Cleanup if input ends unexpectedly
     InputService.InputEnded:Connect(function(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1 and isDragging then
             isDragging = false
@@ -261,7 +262,6 @@ function Library:MakeDraggable(Instance, Cutoff)
                 outline = nil
             end
             dragOffset = nil
-            startPos = nil
         end
     end)
 end;
