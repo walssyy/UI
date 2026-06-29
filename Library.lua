@@ -3068,13 +3068,13 @@ local TabListLayout = Library:Create('UIListLayout', {
 
         local TabButtonWidth = Library:GetTextBounds(Name, Library.Font, 16);
 
-        local TabButton = Library:Create('Frame', {
-            BackgroundColor3 = Library.BackgroundColor;
-            BorderColor3 = Library.OutlineColor;
-            Size = UDim2.new(0, TabButtonWidth + 8 + 4, 1, 0);
-            ZIndex = 1;
-            Parent = TabArea;
-        });
+local TabButton = Library:Create('Frame', {
+    BackgroundColor3 = Library.BackgroundColor;
+    BorderColor3 = Library.OutlineColor;
+    Size = UDim2.new(0, TabButtonWidth + 16, 1, 0);
+    ZIndex = 1;
+    Parent = TabArea;
+});
 
         Library:AddToRegistry(TabButton, {
             BackgroundColor3 = 'BackgroundColor';
