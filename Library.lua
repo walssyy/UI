@@ -172,11 +172,9 @@ function Library:CreateLabel(Properties, IsHud)
     return Library:Create(_Instance, Properties);
 end;
 
--- ===== MakeDraggable WITH SIMPLE OUTLINE =====
 function Library:MakeDraggable(Instance, Cutoff)
     Instance.Active = true;
     local isDragging = false
-    local outline = nil
     local dragOffset = nil
     local parent = Instance.Parent
 
@@ -194,73 +192,40 @@ function Library:MakeDraggable(Instance, Cutoff)
 
             isDragging = true
             dragOffset = ObjPos
-            
-            -- Create the outline at the current position
-            outline = Drawing.new("Square")
-            outline.Visible = true
-            outline.Filled = false
-            outline.Thickness = 2
-            outline.Color = Library.AccentColor
-            outline.Transparency = 1
-            outline.ZIndex = 999
-            outline.Size = Instance.AbsoluteSize
-            outline.Position = Instance.AbsolutePosition
-            
-            Library:AddToRegistry(outline, {
-                Color = 'AccentColor'
-            })
 
-            -- Update outline position while dragging
+            -- Update position every frame while dragging
             while InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) and isDragging do
-                if outline then
-                    local newX = Mouse.X - dragOffset.X
-                    local newY = Mouse.Y - dragOffset.Y
-                    outline.Position = Vector2.new(newX, newY)
-                end
-                RenderStepped:Wait();
-            end
+                -- Calculate new top‑left corner in screen space
+                local newX = Mouse.X - dragOffset.X
+                local newY = Mouse.Y - dragOffset.Y
 
-            -- Move the actual UI to match the outline
-            if outline and isDragging then
-                local targetPos = outline.Position
-                
-                -- CRITICAL FIX: Convert screen coordinates to parent-relative coordinates
                 if parent then
+                    -- Convert to parent‑relative coordinates
                     local parentAbsPos = parent.AbsolutePosition
-                    
-                    -- Calculate relative offset (how far from parent's top-left)
-                    local relativeX = targetPos.X - parentAbsPos.X
-                    local relativeY = targetPos.Y - parentAbsPos.Y
-                    
-                    -- Preserve any existing scale values (usually 0 for draggable windows)
+                    local relativeX = newX - parentAbsPos.X
+                    local relativeY = newY - parentAbsPos.Y
+
+                    -- Preserve any existing scale (usually 0) and update the offset
                     Instance.Position = UDim2.new(
                         Instance.Position.X.Scale,
                         relativeX,
                         Instance.Position.Y.Scale,
                         relativeY
                     )
-                else
-                    -- Fallback if no parent (shouldn't happen)
-                    Instance.Position = UDim2.new(0, targetPos.X, 0, targetPos.Y)
                 end
-                
-                outline:Remove()
-                outline = nil
+
+                RenderStepped:Wait();
             end
-            
+
             isDragging = false
             dragOffset = nil
         end;
     end)
 
-    -- Cleanup if input ends unexpectedly
+    -- Safety cleanup if mouse button is released unexpectedly
     InputService.InputEnded:Connect(function(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1 and isDragging then
             isDragging = false
-            if outline then
-                outline:Remove()
-                outline = nil
-            end
             dragOffset = nil
         end
     end)
