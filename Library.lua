@@ -195,15 +195,28 @@ function Library:AddToolTip(InfoStr, HoverInstance)
         BackgroundColor3 = Library.MainColor,
         BorderColor3 = Library.OutlineColor,
 
-        Size = UDim2.fromOffset(X + 5, Y + 4),
+        Size = UDim2.fromOffset(X + 5, Y + 6), -- Increased height to make room for the line
         ZIndex = 100,
         Parent = Library.ScreenGui,
 
         Visible = false,
     })
 
+    local TooltipLine = Library:Create('Frame', {
+        BackgroundColor3 = Library.AccentColor;
+        BorderSizePixel = 0;
+        Size = UDim2.new(1, 0, 0, 2);
+        Position = UDim2.new(0, 0, 0, 0);
+        ZIndex = 101;
+        Parent = Tooltip;
+    });
+
+    Library:AddToRegistry(TooltipLine, {
+        BackgroundColor3 = 'AccentColor';
+    });
+
     local Label = Library:CreateLabel({
-        Position = UDim2.fromOffset(3, 1),
+        Position = UDim2.fromOffset(3, 4);
         Size = UDim2.fromOffset(X, Y);
         TextSize = 14;
         Text = InfoStr,
