@@ -3076,6 +3076,20 @@ local TabButton = Library:Create('Frame', {
     Parent = TabArea;
 });
 
+local TabLine = Library:Create('Frame', {
+    BackgroundColor3 = Library.AccentColor;
+    BorderSizePixel = 0;
+    Size = UDim2.new(1, 0, 0, 2);
+    Position = UDim2.new(0, 0, 0, -2);
+    ZIndex = 10;
+    Parent = TabButton;
+    Visible = false;
+});
+
+Library:AddToRegistry(TabLine, {
+    BackgroundColor3 = 'AccentColor';
+});
+
         Library:AddToRegistry(TabButton, {
             BackgroundColor3 = 'BackgroundColor';
             BorderColor3 = 'OutlineColor';
@@ -3161,23 +3175,41 @@ local TabButton = Library:Create('Frame', {
             end);
         end;
 
-        function Tab:ShowTab()
-            for _, Tab in next, Window.Tabs do
-                Tab:HideTab();
-            end;
+function Tab:ShowTab()
+    for _, Tab in next, Window.Tabs do
+        Tab:HideTab();
+    end;
 
-            Blocker.BackgroundTransparency = 0;
-            TabButton.BackgroundColor3 = Library.MainColor;
-            Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'MainColor';
-            TabFrame.Visible = true;
-        end;
+    Blocker.BackgroundTransparency = 0;
+    TabButton.BackgroundColor3 = Library.MainColor;
+    Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'MainColor';
+    TabFrame.Visible = true;
+    
+    for _, button in next, TabArea:GetChildren() do
+        if button:IsA('Frame') then
+            local line = button:FindFirstChildWhichIsA('Frame')
+            if line and line ~= TabButtonLabel and line ~= Blocker then
+                line.Visible = (button == TabButton)
+            end
+        end
+    end
+end;
 
-        function Tab:HideTab()
-            Blocker.BackgroundTransparency = 1;
-            TabButton.BackgroundColor3 = Library.BackgroundColor;
-            Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'BackgroundColor';
-            TabFrame.Visible = false;
-        end;
+function Tab:HideTab()
+    Blocker.BackgroundTransparency = 1;
+    TabButton.BackgroundColor3 = Library.BackgroundColor;
+    Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'BackgroundColor';
+    TabFrame.Visible = false;
+    
+    for _, button in next, TabArea:GetChildren() do
+        if button:IsA('Frame') then
+            local line = button:FindFirstChildWhichIsA('Frame')
+            if line and line ~= TabButtonLabel and line ~= Blocker then
+                line.Visible = false
+            end
+        end
+    end
+end;
 
         function Tab:SetLayoutOrder(Position)
             TabButton.LayoutOrder = Position;
