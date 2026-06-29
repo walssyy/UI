@@ -45,27 +45,35 @@ local Library = {
     Signals = {};
     ScreenGui = ScreenGui;
 
-    -- Custom title parts that should automatically use the accent color
+    -- Custom title parts that will automatically use the accent color
     CustomTitleParts = {};
+    LastAccentColor = Color3.fromRGB(0, 85, 255); -- track changes
 };
 
 local RainbowStep = 0
 local Hue = 0
 
+-- RenderStepped loop: handles rainbow AND accent color sync
 table.insert(Library.Signals, RenderStepped:Connect(function(Delta)
+    -- Rainbow logic (existing)
     RainbowStep = RainbowStep + Delta
-
     if RainbowStep >= (1 / 60) then
         RainbowStep = 0
-
         Hue = Hue + (1 / 400);
-
-        if Hue > 1 then
-            Hue = 0;
-        end;
-
+        if Hue > 1 then Hue = 0; end;
         Library.CurrentRainbowHue = Hue;
         Library.CurrentRainbowColor = Color3.fromHSV(Hue, 0.8, 1);
+    end
+
+    -- Accent color sync: if the accent changed, update all custom title parts
+    if Library.AccentColor ~= Library.LastAccentColor then
+        Library.LastAccentColor = Library.AccentColor
+        local accent = Library.AccentColor
+        for _, part in ipairs(Library.CustomTitleParts) do
+            if part and part:IsA("TextLabel") then
+                part.TextColor3 = accent
+            end
+        end
     end
 end))
 
@@ -368,7 +376,6 @@ function Library:RemoveFromRegistry(Instance)
     end;
 end;
 
--- ===== MODIFIED: Also update custom title parts =====
 function Library:UpdateColorsUsingRegistry()
     -- Update standard registered UI elements
     for Idx, Object in next, Library.Registry do
@@ -3053,8 +3060,10 @@ local TitlePart2 = Library:CreateLabel({
     AutomaticSize = Enum.AutomaticSize.X;
 });
 
--- Register TitlePart2 as a custom title part so it automatically gets the accent color
+-- Register this part so it will be kept in sync with the accent color
 table.insert(Library.CustomTitleParts, TitlePart2);
+-- Set initial color
+TitlePart2.TextColor3 = Library.AccentColor;
 
 TitlePart1:GetPropertyChangedSignal('AbsoluteSize'):Connect(function()
     TitlePart2.Position = UDim2.new(0, TitlePart1.AbsoluteSize.X, 0, 0)
