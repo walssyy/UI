@@ -377,7 +377,6 @@ function Library:RemoveFromRegistry(Instance)
 end;
 
 function Library:UpdateColorsUsingRegistry()
-    -- Update standard registered UI elements
     for Idx, Object in next, Library.Registry do
         for Property, ColorIdx in next, Object.Properties do
             if type(ColorIdx) == 'string' then
@@ -388,7 +387,6 @@ function Library:UpdateColorsUsingRegistry()
         end;
     end;
 
-    -- Update custom title parts (like .win) to always use the current accent color
     local accent = Library.AccentColor;
     for _, part in ipairs(Library.CustomTitleParts) do
         if part and part:IsA("TextLabel") then
@@ -398,23 +396,24 @@ function Library:UpdateColorsUsingRegistry()
 end;
 
 function Library:GiveSignal(Signal)
-    -- Only used for signals not attached to library instances, as those should be cleaned up on object destruction by Roblox
     table.insert(Library.Signals, Signal)
 end
 
 function Library:Unload()
-    -- Unload all of the signals
     for Idx = #Library.Signals, 1, -1 do
         local Connection = table.remove(Library.Signals, Idx)
-        Connection:Disconnect()
+        if Connection and Connection.Disconnect then
+            Connection:Disconnect()
+        end
     end
 
-     -- Call our unload callback, maybe to undo some hooks etc
     if Library.OnUnload then
         Library.OnUnload()
     end
 
-    ScreenGui:Destroy()
+    if ScreenGui then
+        ScreenGui:Destroy()
+    end
 end
 
 function Library:OnUnload(Callback)
