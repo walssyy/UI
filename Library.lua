@@ -172,8 +172,11 @@ function Library:CreateLabel(Properties, IsHud)
     return Library:Create(_Instance, Properties);
 end;
 
+-- ===== UPDATED MakeDraggable WITH DRAG OUTLINE =====
 function Library:MakeDraggable(Instance, Cutoff)
     Instance.Active = true;
+    local isDragging = false
+    local ghostFrame = nil
 
     Instance.InputBegan:Connect(function(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -186,8 +189,34 @@ function Library:MakeDraggable(Instance, Cutoff)
                 return;
             end;
 
-            while InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do
-                Instance.Position = UDim2.new(
+            -- Create ghost frame (outline)
+            ghostFrame = Instance:Clone()
+            ghostFrame.Parent = Instance.Parent
+            ghostFrame.BackgroundTransparency = 0.6
+            ghostFrame.BorderColor3 = Library.AccentColor
+            ghostFrame.BorderSizePixel = 2
+            ghostFrame.ZIndex = 999
+            ghostFrame.Position = Instance.Position
+            ghostFrame.Size = Instance.Size
+            ghostFrame.Visible = true
+            
+            -- Make all child frames semi-transparent
+            for _, child in ipairs(ghostFrame:GetDescendants()) do
+                if child:IsA("Frame") or child:IsA("ScrollingFrame") then
+                    child.BackgroundTransparency = 0.6
+                end
+            end
+
+            -- Register ghost frame for accent color sync
+            Library:AddToRegistry(ghostFrame, {
+                BorderColor3 = 'AccentColor'
+            })
+
+            isDragging = true
+
+            while InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) and isDragging do
+                -- Move only the ghost frame
+                ghostFrame.Position = UDim2.new(
                     0,
                     Mouse.X - ObjPos.X + (Instance.Size.X.Offset * Instance.AnchorPoint.X),
                     0,
@@ -195,8 +224,28 @@ function Library:MakeDraggable(Instance, Cutoff)
                 );
 
                 RenderStepped:Wait();
-            end;
+            end
+
+            -- When released, move actual instance to ghost position
+            if ghostFrame then
+                Instance.Position = ghostFrame.Position
+                ghostFrame:Destroy()
+                ghostFrame = nil
+            end
+
+            isDragging = false
         end;
+    end)
+
+    -- Clean up if input ends unexpectedly
+    InputService.InputEnded:Connect(function(Input)
+        if Input.UserInputType == Enum.UserInputType.MouseButton1 and isDragging then
+            isDragging = false
+            if ghostFrame then
+                ghostFrame:Destroy()
+                ghostFrame = nil
+            end
+        end
     end)
 end;
 
@@ -2993,6 +3042,7 @@ function Library:CreateWindow(...)
         Parent = ScreenGui;
     });
 
+    -- Use the updated MakeDraggable with outline
     Library:MakeDraggable(Outer, 25);
 
     local Inner = Library:Create('Frame', {
