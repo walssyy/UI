@@ -177,21 +177,21 @@ function Library:MakeDraggable(Instance, Cutoff)
     Instance.Active = true;
     local isDragging = false
     local outline = nil
-    local targetPosition = nil
-    local objPos = nil
+    local dragOffset = nil
 
     Instance.InputBegan:Connect(function(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1 then
-            objPos = Vector2.new(
+            local ObjPos = Vector2.new(
                 Mouse.X - Instance.AbsolutePosition.X,
                 Mouse.Y - Instance.AbsolutePosition.Y
             );
 
-            if objPos.Y > (Cutoff or 40) then
+            if ObjPos.Y > (Cutoff or 40) then
                 return;
             end;
 
             isDragging = true
+            dragOffset = ObjPos
             
             -- Create simple outline
             outline = Drawing.new("Square")
@@ -209,33 +209,26 @@ function Library:MakeDraggable(Instance, Cutoff)
             })
 
             while InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) and isDragging do
-                -- Calculate the top-left corner position accounting for anchor
-                local absX = Mouse.X - objPos.X
-                local absY = Mouse.Y - objPos.Y
-                
-                -- Update outline position (top-left corner)
                 if outline then
-                    outline.Position = Vector2.new(absX, absY)
+                    -- Position outline at top-left of where window should be
+                    local newX = Mouse.X - dragOffset.X
+                    local newY = Mouse.Y - dragOffset.Y
+                    outline.Position = Vector2.new(newX, newY)
                 end
-                
-                -- Store target position as UDim2 (top-left corner)
-                targetPosition = UDim2.new(0, absX, 0, absY)
 
                 RenderStepped:Wait();
             end
 
-            -- Move instance to the stored target position
-            if targetPosition then
-                Instance.Position = targetPosition
-                targetPosition = nil
-            end
-            
-            if outline then
+            -- Move instance to outline position
+            if outline and isDragging then
+                -- Directly set position using the outline's position
+                Instance.Position = UDim2.new(0, outline.Position.X, 0, outline.Position.Y)
                 outline:Remove()
                 outline = nil
             end
             
             isDragging = false
+            dragOffset = nil
         end;
     end)
 
@@ -247,7 +240,7 @@ function Library:MakeDraggable(Instance, Cutoff)
                 outline:Remove()
                 outline = nil
             end
-            targetPosition = nil
+            dragOffset = nil
         end
     end)
 end;
