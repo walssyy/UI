@@ -3021,12 +3021,19 @@ local TitleContainer = Library:Create('Frame', {
 });
 
 -- Split the title
-local titleText = Config.Title or 'hollow.win'
+local titleText = Config.Title or 'hollow.win - overkill'
 local parts = {}
 local dotIndex = titleText:find('%.')
 if dotIndex then
-    parts[1] = titleText:sub(1, dotIndex - 1) -- "hollow"
-    parts[2] = titleText:sub(dotIndex) -- ".win"
+    -- Find where the "- overkill" part starts
+    local spaceIndex = titleText:find(' ', dotIndex)
+    if spaceIndex then
+        parts[1] = titleText:sub(1, spaceIndex - 1) -- "hollow.win"
+        parts[2] = titleText:sub(spaceIndex) -- " - overkill"
+    else
+        parts[1] = titleText:sub(1, dotIndex - 1) -- "hollow"
+        parts[2] = titleText:sub(dotIndex) -- ".win"
+    end
 else
     parts[1] = titleText
     parts[2] = ''
