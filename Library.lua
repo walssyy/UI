@@ -44,6 +44,9 @@ local Library = {
 
     Signals = {};
     ScreenGui = ScreenGui;
+
+    -- Custom title parts that should automatically use the accent color
+    CustomTitleParts = {};
 };
 
 local RainbowStep = 0
@@ -365,17 +368,9 @@ function Library:RemoveFromRegistry(Instance)
     end;
 end;
 
+-- ===== MODIFIED: Also update custom title parts =====
 function Library:UpdateColorsUsingRegistry()
-    -- TODO: Could have an 'active' list of objects
-    -- where the active list only contains Visible objects.
-
-    -- IMPL: Could setup .Changed events on the AddToRegistry function
-    -- that listens for the 'Visible' propert being changed.
-    -- Visible: true => Add to active list, and call UpdateColors function
-    -- Visible: false => Remove from active list.
-
-    -- The above would be especially efficient for a rainbow menu color or live color-changing.
-
+    -- Update standard registered UI elements
     for Idx, Object in next, Library.Registry do
         for Property, ColorIdx in next, Object.Properties do
             if type(ColorIdx) == 'string' then
@@ -385,6 +380,14 @@ function Library:UpdateColorsUsingRegistry()
             end
         end;
     end;
+
+    -- Update custom title parts (like .win) to always use the current accent color
+    local accent = Library.AccentColor;
+    for _, part in ipairs(Library.CustomTitleParts) do
+        if part and part:IsA("TextLabel") then
+            part.TextColor3 = accent;
+        end
+    end
 end;
 
 function Library:GiveSignal(Signal)
@@ -3049,6 +3052,9 @@ local TitlePart2 = Library:CreateLabel({
     Parent = TitleContainer;
     AutomaticSize = Enum.AutomaticSize.X;
 });
+
+-- Register TitlePart2 as a custom title part so it automatically gets the accent color
+table.insert(Library.CustomTitleParts, TitlePart2);
 
 TitlePart1:GetPropertyChangedSignal('AbsoluteSize'):Connect(function()
     TitlePart2.Position = UDim2.new(0, TitlePart1.AbsoluteSize.X, 0, 0)
