@@ -3128,9 +3128,20 @@ local TabListLayout = Library:Create('UIListLayout', {
         BorderColor3 = 'OutlineColor';
     });
 
-    function Window:SetWindowTitle(Title)
-        WindowLabel.Text = Title;
-    end;
+function Window:SetWindowTitle(Title)
+    local titleText = Title or 'hollow.win'
+    local parts = {}
+    local dotIndex = titleText:find('%.')
+    if dotIndex then
+        parts[1] = titleText:sub(1, dotIndex - 1)
+        parts[2] = titleText:sub(dotIndex)
+    else
+        parts[1] = titleText
+        parts[2] = ''
+    end
+    TitlePart1.Text = parts[1]
+    TitlePart2.Text = parts[2]
+end;
 
     function Window:AddTab(Name)
         local Tab = {
