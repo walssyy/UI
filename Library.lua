@@ -192,30 +192,22 @@ function Library:MakeDraggable(Instance, Cutoff)
 
             isDragging = true
             dragOffset = ObjPos
+            local anchor = Instance.AnchorPoint
 
-            -- Update position every frame while dragging
             while InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) and isDragging do
-                -- Calculate the desired top‑left corner in screen space
-                local desiredTopLeft = Vector2.new(
-                    Mouse.X - dragOffset.X,
-                    Mouse.Y - dragOffset.Y
-                )
+                -- Desired top‑left corner in screen space
+                local topLeft = Vector2.new(Mouse.X - dragOffset.X, Mouse.Y - dragOffset.Y)
 
                 if parent then
                     local parentAbsPos = parent.AbsolutePosition
-                    local anchor = Instance.AnchorPoint
                     local size = Instance.AbsoluteSize
 
-                    -- Convert desired top‑left to a Position that respects the AnchorPoint
-                    local offset = desiredTopLeft - parentAbsPos + anchor * size
+                    -- Position = (topLeft - parentAbsPos) + anchor * size
+                    -- This places the anchor point exactly where we want it.
+                    local pos = topLeft - parentAbsPos + anchor * size
 
-                    -- Preserve any existing scale (usually 0) and update the offset
-                    Instance.Position = UDim2.new(
-                        Instance.Position.X.Scale,
-                        offset.X,
-                        Instance.Position.Y.Scale,
-                        offset.Y
-                    )
+                    -- Set scale to 0 to use absolute pixel offsets
+                    Instance.Position = UDim2.new(0, pos.X, 0, pos.Y)
                 end
 
                 RenderStepped:Wait();
