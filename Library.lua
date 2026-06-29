@@ -177,10 +177,10 @@ function Library:MakeDraggable(Instance, Cutoff)
     local isDragging = false
     local dragOffset = nil
     local parent = Instance.Parent
+    local outline = nil
 
     Instance.InputBegan:Connect(function(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1 then
-            -- Check if clicking in the draggable area (title bar)
             local ObjPos = Vector2.new(
                 Mouse.X - Instance.AbsolutePosition.X,
                 Mouse.Y - Instance.AbsolutePosition.Y
@@ -194,23 +194,50 @@ function Library:MakeDraggable(Instance, Cutoff)
             dragOffset = ObjPos
             local anchor = Instance.AnchorPoint
 
+            -- Create outline at current top-left corner
+            outline = Drawing.new("Square")
+            outline.Visible = true
+            outline.Filled = false
+            outline.Thickness = 2
+            outline.Color = Library.AccentColor
+            outline.Transparency = 1
+            outline.ZIndex = 999
+            outline.Size = Instance.AbsoluteSize
+            outline.Position = Instance.AbsolutePosition  -- top-left on screen
+
+            Library:AddToRegistry(outline, {
+                Color = 'AccentColor'
+            })
+
             while InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) and isDragging do
-                -- Desired top‑left corner in screen space
+                -- Desired top-left corner in screen space
                 local topLeft = Vector2.new(Mouse.X - dragOffset.X, Mouse.Y - dragOffset.Y)
 
+                -- Move the outline (UI stays in place)
+                if outline then
+                    outline.Position = topLeft
+                end
+
+                RenderStepped:Wait();
+            end
+
+            -- On release: move the UI to where the outline ended up
+            if outline and isDragging then
+                local topLeft = outline.Position  -- screen coordinate
                 if parent then
                     local parentAbsPos = parent.AbsolutePosition
                     local size = Instance.AbsoluteSize
 
-                    -- Position = (topLeft - parentAbsPos) + anchor * size
-                    -- This places the anchor point exactly where we want it.
+                    -- Convert screen top-left to parent‑relative position
+                    -- that respects the anchor point
                     local pos = topLeft - parentAbsPos + anchor * size
-
-                    -- Set scale to 0 to use absolute pixel offsets
                     Instance.Position = UDim2.new(0, pos.X, 0, pos.Y)
                 end
 
-                RenderStepped:Wait();
+                -- Clean up outline
+                Library:RemoveFromRegistry(outline)
+                outline:Remove()
+                outline = nil
             end
 
             isDragging = false
@@ -222,6 +249,11 @@ function Library:MakeDraggable(Instance, Cutoff)
     InputService.InputEnded:Connect(function(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1 and isDragging then
             isDragging = false
+            if outline then
+                Library:RemoveFromRegistry(outline)
+                outline:Remove()
+                outline = nil
+            end
             dragOffset = nil
         end
     end)
