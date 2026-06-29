@@ -174,11 +174,11 @@ end;
 
 -- ===== UPDATED MakeDraggable WITH DRAG OUTLINE =====
 -- ===== MakeDraggable WITH SIMPLE OUTLINE =====
+-- ===== MakeDraggable WITH SIMPLE OUTLINE =====
 function Library:MakeDraggable(Instance, Cutoff)
     Instance.Active = true;
     local isDragging = false
     local outline = nil
-    local startPos = nil
 
     Instance.InputBegan:Connect(function(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -209,7 +209,7 @@ function Library:MakeDraggable(Instance, Cutoff)
             })
 
             while InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) and isDragging do
-                -- Move outline only
+                -- Move outline only - DO NOT move the actual instance
                 if outline then
                     outline.Position = Vector2.new(
                         Mouse.X - ObjPos.X,
