@@ -3050,10 +3050,6 @@ local TitlePart2 = Library:CreateLabel({
     AutomaticSize = Enum.AutomaticSize.X;
 });
 
-Library:AddToRegistry(TitlePart2, {
-    TextColor3 = 'AccentColor';
-});
-
 TitlePart1:GetPropertyChangedSignal('AbsoluteSize'):Connect(function()
     TitlePart2.Position = UDim2.new(0, TitlePart1.AbsoluteSize.X, 0, 0)
 end)
