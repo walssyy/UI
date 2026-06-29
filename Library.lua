@@ -173,10 +173,12 @@ function Library:CreateLabel(Properties, IsHud)
 end;
 
 -- ===== UPDATED MakeDraggable WITH DRAG OUTLINE =====
+-- ===== MakeDraggable WITH SIMPLE OUTLINE =====
 function Library:MakeDraggable(Instance, Cutoff)
     Instance.Active = true;
     local isDragging = false
-    local ghostFrame = nil
+    local outline = nil
+    local startPos = nil
 
     Instance.InputBegan:Connect(function(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -189,50 +191,47 @@ function Library:MakeDraggable(Instance, Cutoff)
                 return;
             end;
 
-            -- Create ghost frame (outline)
-            ghostFrame = Instance:Clone()
-            ghostFrame.Parent = Instance.Parent
-            ghostFrame.BackgroundTransparency = 0.6
-            ghostFrame.BorderColor3 = Library.AccentColor
-            ghostFrame.BorderSizePixel = 2
-            ghostFrame.ZIndex = 999
-            ghostFrame.Position = Instance.Position
-            ghostFrame.Size = Instance.Size
-            ghostFrame.Visible = true
+            isDragging = true
             
-            -- Make all child frames semi-transparent
-            for _, child in ipairs(ghostFrame:GetDescendants()) do
-                if child:IsA("Frame") or child:IsA("ScrollingFrame") then
-                    child.BackgroundTransparency = 0.6
-                end
-            end
-
-            -- Register ghost frame for accent color sync
-            Library:AddToRegistry(ghostFrame, {
-                BorderColor3 = 'AccentColor'
+            -- Create simple outline
+            outline = Drawing.new("Square")
+            outline.Visible = true
+            outline.Filled = false
+            outline.Thickness = 2
+            outline.Color = Library.AccentColor
+            outline.Transparency = 1
+            outline.ZIndex = 999
+            outline.Size = Instance.AbsoluteSize
+            outline.Position = Instance.AbsolutePosition
+            
+            Library:AddToRegistry(outline, {
+                Color = 'AccentColor'
             })
 
-            isDragging = true
-
             while InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) and isDragging do
-                -- Move only the ghost frame
-                ghostFrame.Position = UDim2.new(
-                    0,
-                    Mouse.X - ObjPos.X + (Instance.Size.X.Offset * Instance.AnchorPoint.X),
-                    0,
-                    Mouse.Y - ObjPos.Y + (Instance.Size.Y.Offset * Instance.AnchorPoint.Y)
-                );
+                -- Move outline only
+                if outline then
+                    outline.Position = Vector2.new(
+                        Mouse.X - ObjPos.X,
+                        Mouse.Y - ObjPos.Y
+                    )
+                end
 
                 RenderStepped:Wait();
             end
 
-            -- When released, move actual instance to ghost position
-            if ghostFrame then
-                Instance.Position = ghostFrame.Position
-                ghostFrame:Destroy()
-                ghostFrame = nil
+            -- Move instance to outline position
+            if outline then
+                Instance.Position = UDim2.new(
+                    0,
+                    outline.Position.X,
+                    0,
+                    outline.Position.Y
+                )
+                outline:Remove()
+                outline = nil
             end
-
+            
             isDragging = false
         end;
     end)
@@ -241,9 +240,9 @@ function Library:MakeDraggable(Instance, Cutoff)
     InputService.InputEnded:Connect(function(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1 and isDragging then
             isDragging = false
-            if ghostFrame then
-                ghostFrame:Destroy()
-                ghostFrame = nil
+            if outline then
+                outline:Remove()
+                outline = nil
             end
         end
     end)
