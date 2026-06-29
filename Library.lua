@@ -178,22 +178,20 @@ function Library:MakeDraggable(Instance, Cutoff)
     local isDragging = false
     local outline = nil
     local targetPosition = nil
+    local objPos = nil
 
     Instance.InputBegan:Connect(function(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1 then
-            local ObjPos = Vector2.new(
+            objPos = Vector2.new(
                 Mouse.X - Instance.AbsolutePosition.X,
                 Mouse.Y - Instance.AbsolutePosition.Y
             );
 
-            if ObjPos.Y > (Cutoff or 40) then
+            if objPos.Y > (Cutoff or 40) then
                 return;
             end;
 
             isDragging = true
-            
-            -- Store the current position as UDim2
-            targetPosition = Instance.Position
             
             -- Create simple outline
             outline = Drawing.new("Square")
@@ -211,17 +209,17 @@ function Library:MakeDraggable(Instance, Cutoff)
             })
 
             while InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) and isDragging do
-                -- Calculate new position
-                local newX = Mouse.X - ObjPos.X
-                local newY = Mouse.Y - ObjPos.Y
+                -- Calculate the top-left corner position accounting for anchor
+                local absX = Mouse.X - objPos.X
+                local absY = Mouse.Y - objPos.Y
                 
-                -- Update outline position
+                -- Update outline position (top-left corner)
                 if outline then
-                    outline.Position = Vector2.new(newX, newY)
+                    outline.Position = Vector2.new(absX, absY)
                 end
                 
-                -- Store the target position as UDim2
-                targetPosition = UDim2.new(0, newX, 0, newY)
+                -- Store target position as UDim2 (top-left corner)
+                targetPosition = UDim2.new(0, absX, 0, absY)
 
                 RenderStepped:Wait();
             end
