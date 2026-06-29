@@ -2946,6 +2946,7 @@ function Library:CreateWindow(...)
     if type(Config.Title) ~= 'string' then Config.Title = 'No title' end
     if type(Config.TabPadding) ~= 'number' then Config.TabPadding = 0 end
     if type(Config.MenuFadeTime) ~= 'number' then Config.MenuFadeTime = 0.2 end
+    if type(Config.TabAlignment) ~= 'string' then Config.TabAlignment = 'Left' end
 
     if typeof(Config.Position) ~= 'UDim2' then Config.Position = UDim2.fromOffset(175, 50) end
     if typeof(Config.Size) ~= 'UDim2' then Config.Size = UDim2.fromOffset(550, 600) end
@@ -3024,20 +3025,21 @@ function Library:CreateWindow(...)
         BackgroundColor3 = 'BackgroundColor';
     });
 
-    local TabArea = Library:Create('Frame', {
-        BackgroundTransparency = 1;
-        Position = UDim2.new(0, 8, 0, 8);
-        Size = UDim2.new(1, -16, 0, 21);
-        ZIndex = 1;
-        Parent = MainSectionInner;
-    });
+local TabArea = Library:Create('Frame', {
+    BackgroundTransparency = 1;
+    Position = UDim2.new(0, 8, 0, 8);
+    Size = UDim2.new(1, -16, 0, 21);
+    ZIndex = 1;
+    Parent = MainSectionInner;
+});
 
-    local TabListLayout = Library:Create('UIListLayout', {
-        Padding = UDim.new(0, Config.TabPadding);
-        FillDirection = Enum.FillDirection.Horizontal;
-        SortOrder = Enum.SortOrder.LayoutOrder;
-        Parent = TabArea;
-    });
+local TabListLayout = Library:Create('UIListLayout', {
+    Padding = UDim.new(0, Config.TabPadding);
+    FillDirection = Enum.FillDirection.Horizontal;
+    HorizontalAlignment = Config.TabAlignment == 'Center' and Enum.HorizontalAlignment.Center or Enum.HorizontalAlignment.Left;
+    SortOrder = Enum.SortOrder.LayoutOrder;
+    Parent = TabArea;
+});
 
     local TabContainer = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
