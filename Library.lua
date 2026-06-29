@@ -195,22 +195,26 @@ function Library:MakeDraggable(Instance, Cutoff)
 
             -- Update position every frame while dragging
             while InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) and isDragging do
-                -- Calculate new top‑left corner in screen space
-                local newX = Mouse.X - dragOffset.X
-                local newY = Mouse.Y - dragOffset.Y
+                -- Calculate the desired top‑left corner in screen space
+                local desiredTopLeft = Vector2.new(
+                    Mouse.X - dragOffset.X,
+                    Mouse.Y - dragOffset.Y
+                )
 
                 if parent then
-                    -- Convert to parent‑relative coordinates
                     local parentAbsPos = parent.AbsolutePosition
-                    local relativeX = newX - parentAbsPos.X
-                    local relativeY = newY - parentAbsPos.Y
+                    local anchor = Instance.AnchorPoint
+                    local size = Instance.AbsoluteSize
+
+                    -- Convert desired top‑left to a Position that respects the AnchorPoint
+                    local offset = desiredTopLeft - parentAbsPos + anchor * size
 
                     -- Preserve any existing scale (usually 0) and update the offset
                     Instance.Position = UDim2.new(
                         Instance.Position.X.Scale,
-                        relativeX,
+                        offset.X,
                         Instance.Position.Y.Scale,
-                        relativeY
+                        offset.Y
                     )
                 end
 
