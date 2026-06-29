@@ -178,6 +178,7 @@ function Library:MakeDraggable(Instance, Cutoff)
     local isDragging = false
     local outline = nil
     local dragOffset = nil
+    local startPos = nil
 
     Instance.InputBegan:Connect(function(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -192,6 +193,7 @@ function Library:MakeDraggable(Instance, Cutoff)
 
             isDragging = true
             dragOffset = ObjPos
+            startPos = Instance.AbsolutePosition
             
             -- Create simple outline
             outline = Drawing.new("Square")
@@ -202,7 +204,7 @@ function Library:MakeDraggable(Instance, Cutoff)
             outline.Transparency = 1
             outline.ZIndex = 999
             outline.Size = Instance.AbsoluteSize
-            outline.Position = Instance.AbsolutePosition
+            outline.Position = startPos
             
             Library:AddToRegistry(outline, {
                 Color = 'AccentColor'
@@ -221,14 +223,17 @@ function Library:MakeDraggable(Instance, Cutoff)
 
             -- Move instance to outline position
             if outline and isDragging then
-                -- Directly set position using the outline's position
-                Instance.Position = UDim2.new(0, outline.Position.X, 0, outline.Position.Y)
+                -- Use the outline's position directly
+                local newPos = outline.Position
+                -- Convert to UDim2, maintaining any existing scale values
+                Instance.Position = UDim2.new(0, newPos.X, 0, newPos.Y)
                 outline:Remove()
                 outline = nil
             end
             
             isDragging = false
             dragOffset = nil
+            startPos = nil
         end;
     end)
 
@@ -241,6 +246,7 @@ function Library:MakeDraggable(Instance, Cutoff)
                 outline = nil
             end
             dragOffset = nil
+            startPos = nil
         end
     end)
 end;
