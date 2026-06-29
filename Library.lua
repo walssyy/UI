@@ -223,10 +223,25 @@ function Library:MakeDraggable(Instance, Cutoff)
 
             -- Move instance to outline position
             if outline and isDragging then
-                -- Use the outline's position directly
                 local newPos = outline.Position
-                -- Convert to UDim2, maintaining any existing scale values
-                Instance.Position = UDim2.new(0, newPos.X, 0, newPos.Y)
+                
+                -- Get the parent's absolute position to convert to local coordinates
+                local parent = Instance.Parent
+                local parentAbsPos = parent and parent.AbsolutePosition or Vector2.new(0, 0)
+                
+                -- Calculate the local position relative to parent
+                local localX = newPos.X - parentAbsPos.X
+                local localY = newPos.Y - parentAbsPos.Y
+                
+                -- Set the position using UDim2 with the calculated offset
+                -- Preserve any existing scale values (they should be 0 for draggable windows)
+                Instance.Position = UDim2.new(
+                    Instance.Position.X.Scale, 
+                    localX,
+                    Instance.Position.Y.Scale,
+                    localY
+                )
+                
                 outline:Remove()
                 outline = nil
             end
@@ -250,7 +265,6 @@ function Library:MakeDraggable(Instance, Cutoff)
         end
     end)
 end;
-
 function Library:AddToolTip(InfoStr, HoverInstance)
     local X, Y = Library:GetTextBounds(InfoStr, Library.Font, 14);
     local Tooltip = Library:Create('Frame', {
