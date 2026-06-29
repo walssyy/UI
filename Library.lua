@@ -3001,14 +3001,73 @@ function Library:CreateWindow(...)
         BorderColor3 = 'AccentColor';
     });
 
-    local WindowLabel = Library:CreateLabel({
-        Position = UDim2.new(0, 7, 0, 0);
-        Size = UDim2.new(0, 0, 0, 25);
-        Text = Config.Title or '';
-        TextXAlignment = Enum.TextXAlignment.Left;
-        ZIndex = 1;
-        Parent = Inner;
-    });
+-- Custom Title Container
+local TitleContainer = Library:Create('Frame', {
+    Name = 'TitleContainer';
+    BackgroundTransparency = 1;
+    Position = UDim2.new(0, 7, 0, 0);
+    Size = UDim2.new(0, 0, 0, 25);
+    ZIndex = 1;
+    Parent = Inner;
+});
+
+-- Split the title
+local titleText = Config.Title or 'hollow.win'
+local parts = {}
+local dotIndex = titleText:find('%.')
+if dotIndex then
+    parts[1] = titleText:sub(1, dotIndex - 1) -- "hollow"
+    parts[2] = titleText:sub(dotIndex) -- ".win"
+else
+    parts[1] = titleText
+    parts[2] = ''
+end
+
+-- Create "hollow" part (normal color)
+local TitlePart1 = Library:CreateLabel({
+    Name = 'HollowPart';
+    Position = UDim2.new(0, 0, 0, 0);
+    Size = UDim2.new(0, 0, 1, 0);
+    Text = parts[1];
+    TextXAlignment = Enum.TextXAlignment.Left;
+    ZIndex = 1;
+    Parent = TitleContainer;
+    AutomaticSize = Enum.AutomaticSize.X;
+});
+
+Library:AddToRegistry(TitlePart1, {
+    TextColor3 = 'FontColor';
+});
+
+local TitlePart2 = Library:CreateLabel({
+    Name = 'WinPart';
+    Position = UDim2.new(0, 0, 0, 0);
+    Size = UDim2.new(0, 0, 1, 0);
+    Text = parts[2];
+    TextXAlignment = Enum.TextXAlignment.Left;
+    ZIndex = 1;
+    Parent = TitleContainer;
+    AutomaticSize = Enum.AutomaticSize.X;
+});
+
+Library:AddToRegistry(TitlePart2, {
+    TextColor3 = 'AccentColor';
+});
+
+TitlePart1:GetPropertyChangedSignal('AbsoluteSize'):Connect(function()
+    TitlePart2.Position = UDim2.new(0, TitlePart1.AbsoluteSize.X, 0, 0)
+end)
+
+local function UpdateTitleSize()
+    TitleContainer.Size = UDim2.new(0, TitlePart1.AbsoluteSize.X + TitlePart2.AbsoluteSize.X, 0, 25)
+end
+
+TitlePart1:GetPropertyChangedSignal('AbsoluteSize'):Connect(UpdateTitleSize)
+TitlePart2:GetPropertyChangedSignal('AbsoluteSize'):Connect(UpdateTitleSize)
+
+Window.TitleContainer = TitleContainer
+Window.TitlePart1 = TitlePart1
+Window.TitlePart2 = TitlePart2
 
     local MainSectionOuter = Library:Create('Frame', {
         BackgroundColor3 = Library.BackgroundColor;
