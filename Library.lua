@@ -194,47 +194,39 @@ function Library:MakeDraggable(Instance, Cutoff)
             dragOffset = ObjPos
             local anchor = Instance.AnchorPoint
 
-            -- Create outline at current top-left corner
+            -- Create a **visible** outline at the current top‑left corner
             outline = Drawing.new("Square")
             outline.Visible = true
             outline.Filled = false
             outline.Thickness = 2
             outline.Color = Library.AccentColor
-            outline.Transparency = 1
+            outline.Transparency = 0     -- <<< VISIBLE
             outline.ZIndex = 999
             outline.Size = Instance.AbsoluteSize
-            outline.Position = Instance.AbsolutePosition  -- top-left on screen
+            outline.Position = Instance.AbsolutePosition
 
             Library:AddToRegistry(outline, {
                 Color = 'AccentColor'
             })
 
             while InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) and isDragging do
-                -- Desired top-left corner in screen space
                 local topLeft = Vector2.new(Mouse.X - dragOffset.X, Mouse.Y - dragOffset.Y)
-
-                -- Move the outline (UI stays in place)
                 if outline then
-                    outline.Position = topLeft
+                    outline.Position = topLeft   -- move only the outline
                 end
-
                 RenderStepped:Wait();
             end
 
-            -- On release: move the UI to where the outline ended up
+            -- On release: snap the UI to where the outline is
             if outline and isDragging then
-                local topLeft = outline.Position  -- screen coordinate
+                local topLeft = outline.Position
                 if parent then
                     local parentAbsPos = parent.AbsolutePosition
                     local size = Instance.AbsoluteSize
-
-                    -- Convert screen top-left to parent‑relative position
-                    -- that respects the anchor point
                     local pos = topLeft - parentAbsPos + anchor * size
                     Instance.Position = UDim2.new(0, pos.X, 0, pos.Y)
                 end
 
-                -- Clean up outline
                 Library:RemoveFromRegistry(outline)
                 outline:Remove()
                 outline = nil
@@ -245,7 +237,7 @@ function Library:MakeDraggable(Instance, Cutoff)
         end;
     end)
 
-    -- Safety cleanup if mouse button is released unexpectedly
+    -- Safety cleanup if the mouse button is released outside the loop
     InputService.InputEnded:Connect(function(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1 and isDragging then
             isDragging = false
