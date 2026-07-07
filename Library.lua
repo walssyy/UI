@@ -44,36 +44,25 @@ local Library = {
 
     Signals = {};
     ScreenGui = ScreenGui;
-
-    -- Custom title parts that will automatically use the accent color
-    CustomTitleParts = {};
-    LastAccentColor = Color3.fromRGB(0, 85, 255); -- track changes
 };
 
 local RainbowStep = 0
 local Hue = 0
 
--- RenderStepped loop: handles rainbow AND accent color sync
 table.insert(Library.Signals, RenderStepped:Connect(function(Delta)
-    -- Rainbow logic (existing)
     RainbowStep = RainbowStep + Delta
+
     if RainbowStep >= (1 / 60) then
         RainbowStep = 0
+
         Hue = Hue + (1 / 400);
-        if Hue > 1 then Hue = 0; end;
+
+        if Hue > 1 then
+            Hue = 0;
+        end;
+
         Library.CurrentRainbowHue = Hue;
         Library.CurrentRainbowColor = Color3.fromHSV(Hue, 0.8, 1);
-    end
-
-    -- Accent color sync: if the accent changed, update all custom title parts
-    if Library.AccentColor ~= Library.LastAccentColor then
-        Library.LastAccentColor = Library.AccentColor
-        local accent = Library.AccentColor
-        for _, part in ipairs(Library.CustomTitleParts) do
-            if part and part:IsA("TextLabel") then
-                part.TextColor3 = accent
-            end
-        end
     end
 end))
 
@@ -174,10 +163,6 @@ end;
 
 function Library:MakeDraggable(Instance, Cutoff)
     Instance.Active = true;
-    local isDragging = false
-    local dragOffset = nil
-    local parent = Instance.Parent
-    local outline = nil
 
     Instance.InputBegan:Connect(function(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -190,94 +175,35 @@ function Library:MakeDraggable(Instance, Cutoff)
                 return;
             end;
 
-            isDragging = true
-            dragOffset = ObjPos
-            local anchor = Instance.AnchorPoint
+            while InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do
+                Instance.Position = UDim2.new(
+                    0,
+                    Mouse.X - ObjPos.X + (Instance.Size.X.Offset * Instance.AnchorPoint.X),
+                    0,
+                    Mouse.Y - ObjPos.Y + (Instance.Size.Y.Offset * Instance.AnchorPoint.Y)
+                );
 
-            -- Create a **visible** outline at the current top‑left corner
-            outline = Drawing.new("Square")
-            outline.Visible = true
-            outline.Filled = false
-            outline.Thickness = 2
-            outline.Color = Library.AccentColor
-            outline.Transparency = 0     -- <<< VISIBLE
-            outline.ZIndex = 999
-            outline.Size = Instance.AbsoluteSize
-            outline.Position = Instance.AbsolutePosition
-
-            Library:AddToRegistry(outline, {
-                Color = 'AccentColor'
-            })
-
-            while InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) and isDragging do
-                local topLeft = Vector2.new(Mouse.X - dragOffset.X, Mouse.Y - dragOffset.Y)
-                if outline then
-                    outline.Position = topLeft   -- move only the outline
-                end
                 RenderStepped:Wait();
-            end
-
-            -- On release: snap the UI to where the outline is
-            if outline and isDragging then
-                local topLeft = outline.Position
-                if parent then
-                    local parentAbsPos = parent.AbsolutePosition
-                    local size = Instance.AbsoluteSize
-                    local pos = topLeft - parentAbsPos + anchor * size
-                    Instance.Position = UDim2.new(0, pos.X, 0, pos.Y)
-                end
-
-                Library:RemoveFromRegistry(outline)
-                outline:Remove()
-                outline = nil
-            end
-
-            isDragging = false
-            dragOffset = nil
+            end;
         end;
     end)
-
-    -- Safety cleanup if the mouse button is released outside the loop
-    InputService.InputEnded:Connect(function(Input)
-        if Input.UserInputType == Enum.UserInputType.MouseButton1 and isDragging then
-            isDragging = false
-            if outline then
-                Library:RemoveFromRegistry(outline)
-                outline:Remove()
-                outline = nil
-            end
-            dragOffset = nil
-        end
-    end)
 end;
+
 function Library:AddToolTip(InfoStr, HoverInstance)
     local X, Y = Library:GetTextBounds(InfoStr, Library.Font, 14);
     local Tooltip = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor,
         BorderColor3 = Library.OutlineColor,
 
-        Size = UDim2.fromOffset(X + 5, Y + 6), -- Increased height to make room for the line
+        Size = UDim2.fromOffset(X + 5, Y + 4),
         ZIndex = 100,
         Parent = Library.ScreenGui,
 
         Visible = false,
     })
 
-    local TooltipLine = Library:Create('Frame', {
-        BackgroundColor3 = Library.AccentColor;
-        BorderSizePixel = 0;
-        Size = UDim2.new(1, 0, 0, 2);
-        Position = UDim2.new(0, 0, 0, 0);
-        ZIndex = 101;
-        Parent = Tooltip;
-    });
-
-    Library:AddToRegistry(TooltipLine, {
-        BackgroundColor3 = 'AccentColor';
-    });
-
     local Label = Library:CreateLabel({
-        Position = UDim2.fromOffset(3, 4);
+        Position = UDim2.fromOffset(3, 1),
         Size = UDim2.fromOffset(X, Y);
         TextSize = 14;
         Text = InfoStr,
@@ -427,6 +353,16 @@ function Library:RemoveFromRegistry(Instance)
 end;
 
 function Library:UpdateColorsUsingRegistry()
+    -- TODO: Could have an 'active' list of objects
+    -- where the active list only contains Visible objects.
+
+    -- IMPL: Could setup .Changed events on the AddToRegistry function
+    -- that listens for the 'Visible' propert being changed.
+    -- Visible: true => Add to active list, and call UpdateColors function
+    -- Visible: false => Remove from active list.
+
+    -- The above would be especially efficient for a rainbow menu color or live color-changing.
+
     for Idx, Object in next, Library.Registry do
         for Property, ColorIdx in next, Object.Properties do
             if type(ColorIdx) == 'string' then
@@ -436,34 +372,26 @@ function Library:UpdateColorsUsingRegistry()
             end
         end;
     end;
-
-    local accent = Library.AccentColor;
-    for _, part in ipairs(Library.CustomTitleParts) do
-        if part and part:IsA("TextLabel") then
-            part.TextColor3 = accent;
-        end
-    end
 end;
 
 function Library:GiveSignal(Signal)
+    -- Only used for signals not attached to library instances, as those should be cleaned up on object destruction by Roblox
     table.insert(Library.Signals, Signal)
 end
 
 function Library:Unload()
+    -- Unload all of the signals
     for Idx = #Library.Signals, 1, -1 do
         local Connection = table.remove(Library.Signals, Idx)
-        if Connection and Connection.Disconnect then
-            Connection:Disconnect()
-        end
+        Connection:Disconnect()
     end
 
+     -- Call our unload callback, maybe to undo some hooks etc
     if Library.OnUnload then
         Library.OnUnload()
     end
 
-    if ScreenGui then
-        ScreenGui:Destroy()
-    end
+    ScreenGui:Destroy()
 end
 
 function Library:OnUnload(Callback)
@@ -3018,7 +2946,6 @@ function Library:CreateWindow(...)
     if type(Config.Title) ~= 'string' then Config.Title = 'No title' end
     if type(Config.TabPadding) ~= 'number' then Config.TabPadding = 0 end
     if type(Config.MenuFadeTime) ~= 'number' then Config.MenuFadeTime = 0.2 end
-    if type(Config.TabAlignment) ~= 'string' then Config.TabAlignment = 'Left' end
 
     if typeof(Config.Position) ~= 'UDim2' then Config.Position = UDim2.fromOffset(175, 50) end
     if typeof(Config.Size) ~= 'UDim2' then Config.Size = UDim2.fromOffset(550, 600) end
@@ -3043,7 +2970,6 @@ function Library:CreateWindow(...)
         Parent = ScreenGui;
     });
 
-    -- Use the updated MakeDraggable with outline
     Library:MakeDraggable(Outer, 25);
 
     local Inner = Library:Create('Frame', {
@@ -3061,81 +2987,14 @@ function Library:CreateWindow(...)
         BorderColor3 = 'AccentColor';
     });
 
--- Custom Title Container
-local TitleContainer = Library:Create('Frame', {
-    Name = 'TitleContainer';
-    BackgroundTransparency = 1;
-    Position = UDim2.new(0, 7, 0, 0);
-    Size = UDim2.new(0, 0, 0, 25);
-    ZIndex = 1;
-    Parent = Inner;
-});
-
--- Split the title
-local titleText = Config.Title or 'hollow.win - overkill'
-local parts = {}
-local dotIndex = titleText:find('%.')
-if dotIndex then
-    -- Find where the "- overkill" part starts
-    local spaceIndex = titleText:find(' ', dotIndex)
-    if spaceIndex then
-        parts[1] = titleText:sub(1, spaceIndex - 1) -- "hollow.win"
-        parts[2] = titleText:sub(spaceIndex) -- " - overkill"
-    else
-        parts[1] = titleText:sub(1, dotIndex - 1) -- "hollow"
-        parts[2] = titleText:sub(dotIndex) -- ".win"
-    end
-else
-    parts[1] = titleText
-    parts[2] = ''
-end
-
--- Create "hollow" part (normal color)
-local TitlePart1 = Library:CreateLabel({
-    Name = 'HollowPart';
-    Position = UDim2.new(0, 0, 0, 0);
-    Size = UDim2.new(0, 0, 1, 0);
-    Text = parts[1];
-    TextXAlignment = Enum.TextXAlignment.Left;
-    ZIndex = 1;
-    Parent = TitleContainer;
-    AutomaticSize = Enum.AutomaticSize.X;
-});
-
-Library:AddToRegistry(TitlePart1, {
-    TextColor3 = 'FontColor';
-});
-
-local TitlePart2 = Library:CreateLabel({
-    Name = 'WinPart';
-    Position = UDim2.new(0, 0, 0, 0);
-    Size = UDim2.new(0, 0, 1, 0);
-    Text = parts[2];
-    TextXAlignment = Enum.TextXAlignment.Left;
-    ZIndex = 1;
-    Parent = TitleContainer;
-    AutomaticSize = Enum.AutomaticSize.X;
-});
-
--- Register this part so it will be kept in sync with the accent color
-table.insert(Library.CustomTitleParts, TitlePart2);
--- Set initial color
-TitlePart2.TextColor3 = Library.AccentColor;
-
-TitlePart1:GetPropertyChangedSignal('AbsoluteSize'):Connect(function()
-    TitlePart2.Position = UDim2.new(0, TitlePart1.AbsoluteSize.X, 0, 0)
-end)
-
-local function UpdateTitleSize()
-    TitleContainer.Size = UDim2.new(0, TitlePart1.AbsoluteSize.X + TitlePart2.AbsoluteSize.X, 0, 25)
-end
-
-TitlePart1:GetPropertyChangedSignal('AbsoluteSize'):Connect(UpdateTitleSize)
-TitlePart2:GetPropertyChangedSignal('AbsoluteSize'):Connect(UpdateTitleSize)
-
-Window.TitleContainer = TitleContainer
-Window.TitlePart1 = TitlePart1
-Window.TitlePart2 = TitlePart2
+    local WindowLabel = Library:CreateLabel({
+        Position = UDim2.new(0, 7, 0, 0);
+        Size = UDim2.new(0, 0, 0, 25);
+        Text = Config.Title or '';
+        TextXAlignment = Enum.TextXAlignment.Left;
+        ZIndex = 1;
+        Parent = Inner;
+    });
 
     local MainSectionOuter = Library:Create('Frame', {
         BackgroundColor3 = Library.BackgroundColor;
@@ -3165,21 +3024,20 @@ Window.TitlePart2 = TitlePart2
         BackgroundColor3 = 'BackgroundColor';
     });
 
-local TabArea = Library:Create('Frame', {
-    BackgroundTransparency = 1;
-    Position = UDim2.new(0, 8, 0, 8);
-    Size = UDim2.new(1, -16, 0, 21);
-    ZIndex = 1;
-    Parent = MainSectionInner;
-});
+    local TabArea = Library:Create('Frame', {
+        BackgroundTransparency = 1;
+        Position = UDim2.new(0, 8, 0, 8);
+        Size = UDim2.new(1, -16, 0, 21);
+        ZIndex = 1;
+        Parent = MainSectionInner;
+    });
 
-local TabListLayout = Library:Create('UIListLayout', {
-    Padding = UDim.new(0, Config.TabPadding);
-    FillDirection = Enum.FillDirection.Horizontal;
-    HorizontalAlignment = Config.TabAlignment == 'Center' and Enum.HorizontalAlignment.Center or Enum.HorizontalAlignment.Left;
-    SortOrder = Enum.SortOrder.LayoutOrder;
-    Parent = TabArea;
-});
+    local TabListLayout = Library:Create('UIListLayout', {
+        Padding = UDim.new(0, Config.TabPadding);
+        FillDirection = Enum.FillDirection.Horizontal;
+        SortOrder = Enum.SortOrder.LayoutOrder;
+        Parent = TabArea;
+    });
 
     local TabContainer = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
@@ -3196,20 +3054,9 @@ local TabListLayout = Library:Create('UIListLayout', {
         BorderColor3 = 'OutlineColor';
     });
 
-function Window:SetWindowTitle(Title)
-    local titleText = Title or 'hollow.win'
-    local parts = {}
-    local dotIndex = titleText:find('%.')
-    if dotIndex then
-        parts[1] = titleText:sub(1, dotIndex - 1)
-        parts[2] = titleText:sub(dotIndex)
-    else
-        parts[1] = titleText
-        parts[2] = ''
-    end
-    TitlePart1.Text = parts[1]
-    TitlePart2.Text = parts[2]
-end;
+    function Window:SetWindowTitle(Title)
+        WindowLabel.Text = Title;
+    end;
 
     function Window:AddTab(Name)
         local Tab = {
@@ -3219,27 +3066,13 @@ end;
 
         local TabButtonWidth = Library:GetTextBounds(Name, Library.Font, 16);
 
-local TabButton = Library:Create('Frame', {
-    BackgroundColor3 = Library.BackgroundColor;
-    BorderColor3 = Library.OutlineColor;
-    Size = UDim2.new(0, TabButtonWidth + 16, 1, 0);
-    ZIndex = 1;
-    Parent = TabArea;
-});
-
-local TabLine = Library:Create('Frame', {
-    BackgroundColor3 = Library.AccentColor;
-    BorderSizePixel = 0;
-    Size = UDim2.new(1, 0, 0, 2);
-    Position = UDim2.new(0, 0, 0, -2);
-    ZIndex = 10;
-    Parent = TabButton;
-    Visible = false;
-});
-
-Library:AddToRegistry(TabLine, {
-    BackgroundColor3 = 'AccentColor';
-});
+        local TabButton = Library:Create('Frame', {
+            BackgroundColor3 = Library.BackgroundColor;
+            BorderColor3 = Library.OutlineColor;
+            Size = UDim2.new(0, TabButtonWidth + 8 + 4, 1, 0);
+            ZIndex = 1;
+            Parent = TabArea;
+        });
 
         Library:AddToRegistry(TabButton, {
             BackgroundColor3 = 'BackgroundColor';
@@ -3326,41 +3159,23 @@ Library:AddToRegistry(TabLine, {
             end);
         end;
 
-function Tab:ShowTab()
-    for _, Tab in next, Window.Tabs do
-        Tab:HideTab();
-    end;
+        function Tab:ShowTab()
+            for _, Tab in next, Window.Tabs do
+                Tab:HideTab();
+            end;
 
-    Blocker.BackgroundTransparency = 0;
-    TabButton.BackgroundColor3 = Library.MainColor;
-    Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'MainColor';
-    TabFrame.Visible = true;
-    
-    for _, button in next, TabArea:GetChildren() do
-        if button:IsA('Frame') then
-            local line = button:FindFirstChildWhichIsA('Frame')
-            if line and line ~= TabButtonLabel and line ~= Blocker then
-                line.Visible = (button == TabButton)
-            end
-        end
-    end
-end;
+            Blocker.BackgroundTransparency = 0;
+            TabButton.BackgroundColor3 = Library.MainColor;
+            Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'MainColor';
+            TabFrame.Visible = true;
+        end;
 
-function Tab:HideTab()
-    Blocker.BackgroundTransparency = 1;
-    TabButton.BackgroundColor3 = Library.BackgroundColor;
-    Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'BackgroundColor';
-    TabFrame.Visible = false;
-    
-    for _, button in next, TabArea:GetChildren() do
-        if button:IsA('Frame') then
-            local line = button:FindFirstChildWhichIsA('Frame')
-            if line and line ~= TabButtonLabel and line ~= Blocker then
-                line.Visible = false
-            end
-        end
-    end
-end;
+        function Tab:HideTab()
+            Blocker.BackgroundTransparency = 1;
+            TabButton.BackgroundColor3 = Library.BackgroundColor;
+            Library.RegistryMap[TabButton].Properties.BackgroundColor3 = 'BackgroundColor';
+            TabFrame.Visible = false;
+        end;
 
         function Tab:SetLayoutOrder(Position)
             TabButton.LayoutOrder = Position;
